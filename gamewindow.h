@@ -5,6 +5,9 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QSet>
+#include <QVector>
+#include "powerup.h"
+
 
 class GameWindow : public QMainWindow
 {
@@ -46,6 +49,13 @@ private:
     int m_fps;
 
     GameState m_state;
+
+    QVector<PowerUp> m_powerUps;
+    int m_playerHp;
+
+    QRect playerRect() const;
+    void spawnTestPowerUp();
+    void checkPowerUpPickup();
 };
 
 #endif // GAMEWINDOW_H

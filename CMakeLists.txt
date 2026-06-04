@@ -11,6 +11,8 @@ add_executable(ShootingGame
     main.cpp
     gamewindow.cpp
     gamewindow.h
+    powerup.cpp
+    powerup.h
 )
 
 target_link_libraries(ShootingGame PRIVATE Qt6::Widgets)

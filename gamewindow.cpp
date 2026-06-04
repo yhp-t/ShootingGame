@@ -19,6 +19,7 @@ GameWindow::GameWindow(QWidget *parent)
     // FPS 统计初始化
     m_frameCount = 0;
     m_fps = 0;
+    m_playerHp = 3;
     m_fpsTimer.start();
 
     // 创建定时器：约每 16 毫秒跳一次 → 1000 / 16 ≈ 每秒 60 帧
@@ -54,6 +55,19 @@ void GameWindow::gameLoop()
     if (m_playerY < 20) m_playerY = 20;
     if (m_playerY > height() - 20) m_playerY = height() - 20;
 
+    for (int i = 0; i < m_powerUps.size(); ++i) {
+    m_powerUps[i].update();
+}
+
+    for (int i = m_powerUps.size() - 1; i >= 0; --i) {
+        if (m_powerUps[i].isOutOfScreen(height())) {
+            m_powerUps.removeAt(i);
+    }
+}
+
+checkPowerUpPickup();
+
+
     // --- 2. 统计 FPS ---
     m_frameCount++;
     if (m_fpsTimer.elapsed() >= 1000) {   // 每过 1 秒算一次
@@ -82,9 +96,15 @@ void GameWindow::paintEvent(QPaintEvent *event)
     painter.setBrush(QColor(90, 200, 250));
     painter.drawRect(m_playerX - 20, m_playerY - 20, 40, 40);
 
+    for (const PowerUp &powerUp : m_powerUps) {
+    powerUp.draw(painter);
+}
+
+
     // 左上角显示 FPS，确认循环稳定在 60 帧
     painter.setPen(Qt::white);
     painter.drawText(10, 25, QString("FPS: %1").arg(m_fps));
+    painter.drawText(10, 50, QString("HP: %1").arg(m_playerHp));
 
     if (m_state == GameState::Paused) {
     painter.setPen(Qt::white);
@@ -108,6 +128,11 @@ void GameWindow::keyPressEvent(QKeyEvent *event)
         qDebug() << "Space pressed - Fire!";   // A1 验收点：控制台能看到输出
     }
 
+    if (event->key() == Qt::Key_P) {
+    spawnTestPowerUp();
+    qDebug() << "Test power up spawned";
+}
+
     if (event->key() == Qt::Key_Escape) {
     if (m_state == GameState::Playing) {
         m_state = GameState::Paused;
@@ -125,4 +150,33 @@ void GameWindow::keyReleaseEvent(QKeyEvent *event)
 {
     if (event->isAutoRepeat()) return;
     m_pressedKeys.remove(event->key());  // 这个键松开了
+}
+
+QRect GameWindow::playerRect() const
+{
+    return QRect(m_playerX - 20, m_playerY - 20, 40, 40);
+}
+
+void GameWindow::spawnTestPowerUp()
+{
+    int x = width() / 2;
+    int y = 60;
+
+    m_powerUps.append(PowerUp(x, y, PowerUpType::Life));
+}
+
+void GameWindow::checkPowerUpPickup()
+{
+    QRect player = playerRect();
+
+    for (int i = m_powerUps.size() - 1; i >= 0; --i) {
+        if (player.intersects(m_powerUps[i].rect())) {
+            if (m_powerUps[i].type() == PowerUpType::Life) {
+                m_playerHp += 1;
+                qDebug() << "Picked up life power up. HP:" << m_playerHp;
+            }
+
+            m_powerUps.removeAt(i);
+        }
+    }
 }
