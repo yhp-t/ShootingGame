@@ -3,6 +3,7 @@
 #include <QPainter>
 #include <QKeyEvent>
 #include <QDebug>
+#include <QRandomGenerator>
 
 GameWindow::GameWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -129,9 +130,15 @@ void GameWindow::keyPressEvent(QKeyEvent *event)
     }
 
     if (event->key() == Qt::Key_P) {
-    spawnTestPowerUp();
-    qDebug() << "Test power up spawned";
+        spawnTestPowerUp();
+        qDebug() << "Test power up spawned";
 }
+
+    if (event->key() == Qt::Key_O) {
+        tryDropPowerUp(width() / 2, 80);
+        qDebug() << "Simulate enemy died";
+}
+
 
     if (event->key() == Qt::Key_Escape) {
     if (m_state == GameState::Playing) {
@@ -164,6 +171,19 @@ void GameWindow::spawnTestPowerUp()
 
     m_powerUps.append(PowerUp(x, y, PowerUpType::Life));
 }
+
+void GameWindow::tryDropPowerUp(int x, int y)
+{
+    int chance = QRandomGenerator::global()->bounded(100);
+
+    if (chance < 30) {
+        m_powerUps.append(PowerUp(x, y, PowerUpType::Life));
+        qDebug() << "Power up dropped at:" << x << y;
+    } else {
+        qDebug() << "No power up dropped";
+    }
+}
+
 
 void GameWindow::checkPowerUpPickup()
 {

@@ -55,6 +55,7 @@ private:
 
     QRect playerRect() const;
     void spawnTestPowerUp();
+    void tryDropPowerUp(int x, int y);
     void checkPowerUpPickup();
 };
 
