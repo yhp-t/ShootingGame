@@ -25,6 +25,13 @@ private slots:
     void gameLoop();   // 每一帧执行一次（游戏的心跳）
 
 private:
+     enum class GameState
+    {
+        Playing,
+        Paused,
+        GameOver
+    };
+
     QTimer *m_timer;            // 驱动游戏循环的定时器
     QSet<int> m_pressedKeys;    // 当前被按住的键（A2 的 Player 会用到，这个要保留）
 
@@ -37,6 +44,8 @@ private:
     QElapsedTimer m_fpsTimer;
     int m_frameCount;
     int m_fps;
+
+    GameState m_state;
 };
 
 #endif // GAMEWINDOW_H
