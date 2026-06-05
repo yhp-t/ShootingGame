@@ -20,14 +20,22 @@ void PowerUp::draw(QPainter &painter) const
     painter.setPen(Qt::NoPen);
 
     if (m_type == PowerUpType::Life) {
-        painter.setBrush(QColor(255, 210, 80));
+        painter.setBrush(QColor(255, 210, 80));   // 黄色：生命道具
+    } else if (m_type == PowerUpType::WeaponUpgrade) {
+        painter.setBrush(QColor(160, 120, 255));  // 紫色：武器升级道具
     }
 
     painter.drawEllipse(rect());
 
     painter.setPen(Qt::black);
-    painter.drawText(rect(), Qt::AlignCenter, "+");
+
+    if (m_type == PowerUpType::Life) {
+        painter.drawText(rect(), Qt::AlignCenter, "+");
+    } else if (m_type == PowerUpType::WeaponUpgrade) {
+        painter.drawText(rect(), Qt::AlignCenter, "W");
+    }
 }
+
 
 QRect PowerUp::rect() const
 {

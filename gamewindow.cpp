@@ -21,6 +21,8 @@ GameWindow::GameWindow(QWidget *parent)
     m_frameCount = 0;
     m_fps = 0;
     m_playerHp = 3;
+    m_pickupMessage = "";
+    m_pickupMessageTimer = 0;
     m_fpsTimer.start();
 
     // 创建定时器：约每 16 毫秒跳一次 → 1000 / 16 ≈ 每秒 60 帧
@@ -36,50 +38,80 @@ GameWindow::~GameWindow()
 // 游戏心跳：每一帧调用一次
 void GameWindow::gameLoop()
 {
-
     if (m_state != GameState::Playing) {
         update();
         return;
     }
 
-    // --- 1. 更新游戏状态 ---
-    // 根据按住的方向键移动占位方块（A2 会把这段换成真正的 Player 逻辑）
+    // --- 1. 更新玩家位置 ---
     const int speed = 5;
-    if (m_pressedKeys.contains(Qt::Key_Left))  m_playerX -= speed;
-    if (m_pressedKeys.contains(Qt::Key_Right)) m_playerX += speed;
-    if (m_pressedKeys.contains(Qt::Key_Up))    m_playerY -= speed;
-    if (m_pressedKeys.contains(Qt::Key_Down))  m_playerY += speed;
 
-    // 不让方块跑出窗口
-    if (m_playerX < 20) m_playerX = 20;
-    if (m_playerX > width() - 20) m_playerX = width() - 20;
-    if (m_playerY < 20) m_playerY = 20;
-    if (m_playerY > height() - 20) m_playerY = height() - 20;
+    if (m_pressedKeys.contains(Qt::Key_Left)) {
+        m_playerX -= speed;
+    }
 
+    if (m_pressedKeys.contains(Qt::Key_Right)) {
+        m_playerX += speed;
+    }
+
+    if (m_pressedKeys.contains(Qt::Key_Up)) {
+        m_playerY -= speed;
+    }
+
+    if (m_pressedKeys.contains(Qt::Key_Down)) {
+        m_playerY += speed;
+    }
+
+    // --- 2. 不让玩家跑出窗口 ---
+    if (m_playerX < 20) {
+        m_playerX = 20;
+    }
+
+    if (m_playerX > width() - 20) {
+        m_playerX = width() - 20;
+    }
+
+    if (m_playerY < 20) {
+        m_playerY = 20;
+    }
+
+    if (m_playerY > height() - 20) {
+        m_playerY = height() - 20;
+    }
+
+    // --- 3. 更新所有道具位置 ---
     for (int i = 0; i < m_powerUps.size(); ++i) {
-    m_powerUps[i].update();
-}
+        m_powerUps[i].update();
+    }
 
+    // --- 4. 删除掉出屏幕的道具 ---
     for (int i = m_powerUps.size() - 1; i >= 0; --i) {
         if (m_powerUps[i].isOutOfScreen(height())) {
             m_powerUps.removeAt(i);
+        }
     }
-}
 
-checkPowerUpPickup();
+    // --- 5. 检查玩家是否拾取道具 ---
+    checkPowerUpPickup();
 
+    // --- 6. 拾取提示倒计时 ---
+    if (m_pickupMessageTimer > 0) {
+        m_pickupMessageTimer--;
+    }
 
-    // --- 2. 统计 FPS ---
+    // --- 7. 统计 FPS ---
     m_frameCount++;
-    if (m_fpsTimer.elapsed() >= 1000) {   // 每过 1 秒算一次
+
+    if (m_fpsTimer.elapsed() >= 1000) {
         m_fps = m_frameCount;
         m_frameCount = 0;
         m_fpsTimer.restart();
     }
 
-    // --- 3. 请求重绘 → 触发 paintEvent ---
+    // --- 8. 请求重绘 ---
     update();
 }
+
 
 // 所有画面绘制都在这里
 void GameWindow::paintEvent(QPaintEvent *event)
@@ -96,6 +128,16 @@ void GameWindow::paintEvent(QPaintEvent *event)
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(90, 200, 250));
     painter.drawRect(m_playerX - 20, m_playerY - 20, 40, 40);
+
+    if (m_pickupMessageTimer > 0) {
+    QFont font = painter.font();
+    font.setPointSize(16);
+    font.setBold(true);
+    painter.setFont(font);
+
+    painter.setPen(Qt::white);
+    painter.drawText(rect(), Qt::AlignCenter, m_pickupMessage);
+}
 
     for (const PowerUp &powerUp : m_powerUps) {
     powerUp.draw(painter);
@@ -135,9 +177,9 @@ void GameWindow::keyPressEvent(QKeyEvent *event)
 }
 
     if (event->key() == Qt::Key_O) {
-        tryDropPowerUp(width() / 2, 80);
-        qDebug() << "Simulate enemy died";
+    onEnemyDied(width() / 2, 80);
 }
+
 
 
     if (event->key() == Qt::Key_Escape) {
@@ -177,12 +219,23 @@ void GameWindow::tryDropPowerUp(int x, int y)
     int chance = QRandomGenerator::global()->bounded(100);
 
     if (chance < 30) {
-        m_powerUps.append(PowerUp(x, y, PowerUpType::Life));
+        int typeChance = QRandomGenerator::global()->bounded(100);
+
+        PowerUpType type = PowerUpType::Life;
+
+        if (typeChance < 80) {
+            type = PowerUpType::Life;
+        } else {
+            type = PowerUpType::WeaponUpgrade;
+        }
+
+        m_powerUps.append(PowerUp(x, y, type));
         qDebug() << "Power up dropped at:" << x << y;
     } else {
         qDebug() << "No power up dropped";
     }
 }
+
 
 
 void GameWindow::checkPowerUpPickup()
@@ -191,12 +244,28 @@ void GameWindow::checkPowerUpPickup()
 
     for (int i = m_powerUps.size() - 1; i >= 0; --i) {
         if (player.intersects(m_powerUps[i].rect())) {
+
             if (m_powerUps[i].type() == PowerUpType::Life) {
                 m_playerHp += 1;
+
+                m_pickupMessage = "HP +1";
+                m_pickupMessageTimer = 60;
+
                 qDebug() << "Picked up life power up. HP:" << m_playerHp;
+            } else if (m_powerUps[i].type() == PowerUpType::WeaponUpgrade) {
+                m_pickupMessage = "Weapon Upgrade!";
+                m_pickupMessageTimer = 60;
+
+                qDebug() << "Picked up weapon upgrade power up. Interface reserved.";
             }
 
             m_powerUps.removeAt(i);
         }
     }
+}
+
+void GameWindow::onEnemyDied(int x, int y)
+{
+    qDebug() << "Enemy died at:" << x << y;
+    tryDropPowerUp(x, y);
 }

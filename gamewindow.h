@@ -6,6 +6,8 @@
 #include <QElapsedTimer>
 #include <QSet>
 #include <QVector>
+#include <QString>
+
 #include "powerup.h"
 
 
@@ -16,6 +18,8 @@ class GameWindow : public QMainWindow
 public:
     GameWindow(QWidget *parent = nullptr);
     ~GameWindow();
+
+    void onEnemyDied(int x, int y);
 
 protected:
     // Qt 需要重绘时自动调用，我们在这里画游戏画面
@@ -52,6 +56,9 @@ private:
 
     QVector<PowerUp> m_powerUps;
     int m_playerHp;
+
+    QString m_pickupMessage;
+    int m_pickupMessageTimer;
 
     QRect playerRect() const;
     void spawnTestPowerUp();

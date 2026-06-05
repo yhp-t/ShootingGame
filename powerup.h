@@ -6,7 +6,8 @@
 
 enum class PowerUpType
 {
-    Life
+    Life,
+    WeaponUpgrade
 };
 
 class PowerUp
